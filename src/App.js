@@ -1,8 +1,6 @@
 import React, { Component } from "react";
 import axios from "axios";
 
-import authors from "./data.js";
-
 // Components
 import Sidebar from "./Sidebar";
 import SearchBar from "./SearchBar";
@@ -14,11 +12,22 @@ class App extends Component {
     super(props);
     this.state = {
       currentAuthor: {},
-      filteredAuthors: []
+      filteredAuthors: [],
+      authors: [],
+      loading: true
     };
     this.selectAuthor = this.selectAuthor.bind(this);
     this.unselectAuthor = this.unselectAuthor.bind(this);
     this.filterAuthors = this.filterAuthors.bind(this);
+  }
+
+  componentDidMount() {
+    axios
+      .get("https://the-index-api.herokuapp.com/api/authors/")
+      .then(res => res.data)
+      .then(data => this.setState({ authors: data, filteredAuthors: data }))
+      .then(this.setState({ loading: false }))
+      .catch(error => console.error(error));
   }
 
   selectAuthor(author) {
@@ -31,24 +40,25 @@ class App extends Component {
 
   filterAuthors(query) {
     query = query.toLowerCase();
-    let filteredAuthors = authors.filter(author => {
+    let filteredAuthors = this.state.authors.filter(author => {
       return `${author.first_name} ${author.last_name}`.includes(query);
     });
     this.setState({ filteredAuthors: filteredAuthors });
   }
 
   getContentView() {
+    if (this.state.loading) return <div className="loader" />;
+
+    //The loading spinner is too heavy given the fast loading time so you may not be able to see it
     if (this.state.currentAuthor.first_name) {
       return <AuthorDetail author={this.state.currentAuthor} />;
-    } else if (this.state.filteredAuthors[0]) {
+    } else {
       return (
         <AuthorsList
-          authors={this.state.filteredAuthors}
+          authors={this.state.authors}
           selectAuthor={this.selectAuthor}
         />
       );
-    } else {
-      return <AuthorsList authors={authors} selectAuthor={this.selectAuthor} />;
     }
   }
 
